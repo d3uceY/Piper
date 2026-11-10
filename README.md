@@ -3,13 +3,11 @@
 # Piper
 
 Runs a command and, if it takes longer than a few seconds, loops elevator music
-under it — fading in when it starts and out when the command finishes.
+under it.
 
 ```sh
 piper npm install
 ```
-
-Everything after the command name is passed to it untouched:
 
 ```sh
 piper npm install --save
@@ -44,9 +42,6 @@ Flags go **before** the command name.
 2. Still running after `delay`? Decode the sample, open the audio device, loop it,
    fade in.
 3. Command exits: fade out, then exit with the command's own status code.
-
-The sample is embedded in the binary, so nothing has to be on disk. A missing or
-unreadable sample is a warning — the command still runs.
 
 ## Config
 
