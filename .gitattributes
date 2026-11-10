@@ -8,3 +8,5 @@ Makefile text eol=lf
 # The embedded sample is bytes, not text; never let git re-encode it.
 *.mp3 binary
 *.png binary
+
+LICENSE text eol=lf
