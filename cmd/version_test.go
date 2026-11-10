@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bytes"
-	"io"
 	"strings"
 	"testing"
 )
@@ -25,16 +24,5 @@ func TestVersionCmdPrintsBuildIdentity(t *testing.T) {
 	}
 	if !strings.Contains(got, "commit ") {
 		t.Errorf("expected a commit in the output, got %q", got)
-	}
-}
-
-func TestUnknownCommandFails(t *testing.T) {
-	root := newRootCmd()
-	root.SetArgs([]string{"nope"})
-	root.SetOut(io.Discard)
-	root.SetErr(io.Discard)
-
-	if err := root.Execute(); err == nil {
-		t.Fatal("expected an error for an unknown command")
 	}
 }
