@@ -1,0 +1,15 @@
+# Build output
+/piper
+/piper.exe
+/bin/
+/dist/
+
+# Test and coverage output
+*.test
+*.out
+coverage.*
+
+# Editor / OS noise
+.idea/
+.DS_Store
+Thumbs.db

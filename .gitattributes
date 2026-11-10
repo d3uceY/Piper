@@ -1,0 +1,6 @@
+# Keep Go sources LF even on a Windows checkout, so `gofmt -l` stays empty.
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+Makefile text eol=lf
+*.sh text eol=lf
