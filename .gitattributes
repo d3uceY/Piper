@@ -4,3 +4,6 @@ go.mod text eol=lf
 go.sum text eol=lf
 Makefile text eol=lf
 *.sh text eol=lf
+
+# The embedded sample is bytes, not text; never let git re-encode it.
+*.mp3 binary
