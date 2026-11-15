@@ -17,38 +17,18 @@ before:
     - go generate ./...
 
 builds:
-  # Linux audio goes through ALSA, and oto's driver is cgo-only, so these
-  # targets are cross-compiled with zig instead of CGO_ENABLED=0.
-  - id: linux
+  # oto v3.5+ needs no cgo on any of these: Windows uses WASAPI, macOS uses
+  # AudioToolbox, and Linux reaches PulseAudio via pure-Go with a runtime
+  # dlopen of libasound.so.2. So every target is a static, portable build.
+  - env:
+      - CGO_ENABLED=0
     goos:
       - linux
-    goarch:
-      - amd64
-      - arm64
-    env:
-      - CGO_ENABLED=1
-    overrides:
-      - goos: linux
-        goarch: amd64
-        env:
-          - CGO_ENABLED=1
-          - CC=zig cc -target x86_64-linux-gnu
-      - goos: linux
-        goarch: arm64
-        env:
-          - CGO_ENABLED=1
-          - CC=zig cc -target aarch64-linux-gnu
-
-  # Windows and macOS ship pure-Go drivers, so a static build is enough.
-  - id: purego
-    goos:
       - windows
       - darwin
     goarch:
       - amd64
       - arm64
-    env:
-      - CGO_ENABLED=0
 
 archives:
   - id: default
