@@ -9,6 +9,8 @@ on:
 
 permissions:
   contents: write
+  # npm --provenance signs an attestation through GitHub's OIDC provider.
+  id-token: write
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
