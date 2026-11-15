@@ -1,0 +1,49 @@
+{
+  "name": "@deuce/piper",
+  "version": "0.1.0",
+  "description": "Runs a command and, if it takes longer than a few seconds, loops elevator music under it.",
+  "keywords": [
+    "cli",
+    "music",
+    "audio",
+    "elevator-music",
+    "command",
+    "go"
+  ],
+  "homepage": "https://github.com/d3uceY/Piper#readme",
+  "bugs": {
+    "url": "https://github.com/d3uceY/Piper/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/d3uceY/Piper.git"
+  },
+  "license": "MIT",
+  "author": "d3uceY <onyekwelujesse1234@gmail.com>",
+  "bin": {
+    "piper": "bin/piper.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "install.js"
+  ],
+  "scripts": {
+    "postinstall": "node install.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
