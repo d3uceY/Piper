@@ -19,11 +19,12 @@ piper --delay 10s --volume 0.3 cargo build --release
 ### Homebrew (macOS and Linux)
 
 ```sh
-brew install --cask d3uceY/piper-cask/piper
+brew install --cask d3uceY/piper-homebrew-cask/piper
 ```
 
-This is a cask, so the `--cask` flag is required — `brew install piper` would
-look for a formula that does not exist. Upgrading later is the usual
+The tap is the repo `d3uceY/piper-homebrew-cask` and the cask is `piper`, so both
+parts are needed. This is a cask, so `--cask` is required — `brew install piper`
+would look for a formula that does not exist. Upgrade later with
 `brew upgrade --cask piper`.
 
 ### npm (any platform)
