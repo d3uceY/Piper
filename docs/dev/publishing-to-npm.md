@@ -158,6 +158,26 @@ virtually all desktops) if the PulseAudio path is unavailable.
 | `fatal error: 'alsa/asoundlib.h' file not found` | cgo enabled without ALSA headers on the build host | Same — upgrade `oto` |
 | Install fails to download, `HTTP 404` on the release URL | No GitHub release for the package version | Run GoReleaser for that tag first |
 | Install prints `skipping binary download` | `PIPER_SKIP_DOWNLOAD=1` set | Unset it |
+| `npm warn install-scripts ... not yet covered by allowScripts` | npm 11.4+ does not run dependency install scripts by default | Not fatal — see below |
+
+### npm's install-script gate
+
+npm 11.4+ refuses to run a dependency's install scripts unless they are
+allowlisted. Users therefore see:
+
+```
+npm warn install-scripts   @deuce/piper@0.1.1 (postinstall: node install.js)
+```
+
+Two escape hatches are documented in the READMEs:
+`--allow-scripts=@deuce/piper` for one install, or
+`npm config set allow-scripts=@deuce/piper --location=user` for all installs.
+
+**The package must not depend on the postinstall running.** `install.js` treats
+every failure as a warning, and `bin/piper.js` re-attempts the download on first
+run, so a blocked script is a slower first run rather than a broken install.
+Keep that property: if the shim ever requires `vendor/` to exist, every npm
+11.4+ user gets a broken CLI.
 
 ---
 

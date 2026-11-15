@@ -14,6 +14,58 @@ piper npm install --save
 piper --delay 10s --volume 0.3 cargo build --release
 ```
 
+## Install
+
+### Homebrew (macOS and Linux)
+
+```sh
+brew install --cask d3uceY/piper-cask/piper
+```
+
+This is a cask, so the `--cask` flag is required — `brew install piper` would
+look for a formula that does not exist. Upgrading later is the usual
+`brew upgrade --cask piper`.
+
+### npm (any platform)
+
+```sh
+npm install -g @deuce/piper
+```
+
+The package downloads the right binary for your platform on install. npm 11.4+
+blocks install scripts by default, so if you see this warning:
+
+```
+npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
+npm warn install-scripts   @deuce/piper@0.1.1 (postinstall: node install.js)
+```
+
+allow it with either:
+
+```sh
+npm install -g --allow-scripts=@deuce/piper      # this install only
+npm config set allow-scripts=@deuce/piper --location=user   # all future installs
+```
+
+You do not have to. If the script is skipped, `piper` fetches the binary the
+first time you run it and shows a short `downloading...` line. Allowing the
+script just moves that work into the install.
+
+Prefer not to install globally?
+
+```sh
+npx @deuce/piper npm install
+```
+
+To install without the binary at all (offline, packaging), set
+`PIPER_SKIP_DOWNLOAD=1`.
+
+### Prebuilt binaries
+
+Windows, macOS and Linux builds for x86_64 and arm64 are attached to every
+[release](https://github.com/d3uceY/Piper/releases). Unpack the archive and put
+`piper` on your PATH.
+
 ## Commands
 
 | Command                   | What it does                                        |
