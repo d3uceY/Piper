@@ -66,6 +66,7 @@ x86_64 and arm64 builds for Windows, macOS and Linux are on the
 | `piper sound reset`       | back to the built-in sample             |
 | `piper config`            | show settings and where they live       |
 | `piper config path`       | print the config file path              |
+| `piper config set <key> <value>` | change one setting for every run |
 | `piper version`           | print the build                         |
 
 ## Flags
@@ -78,6 +79,9 @@ x86_64 and arm64 builds for Windows, macOS and Linux are on the
 | `--fade-in <dur>`  | `1500ms` | fade in length                             |
 | `--fade-out <dur>` | `800ms`  | fade out length                            |
 | `--silent`         |          | no music for this run                      |
+
+A duration does not need a unit: `--delay 10` waits ten seconds, the same as
+`--delay 10s`. `500ms`, `2m`, `1h30m` and `3 seconds` all work.
 
 ## Your own music
 
@@ -100,6 +104,18 @@ relative paths are stored as absolute, so the file is found from any directory.
 Keys mirror the flags. Empty `sound` means the embedded sample. `piper sound`
 writes `sound`; setting it by hand works too, and a relative path resolves
 against the current directory.
+
+To make a flag's value the default, write it once:
+
+```sh
+piper config set delay 10
+piper config set volume 0.3
+```
+
+A duration does not need a unit here either: `10` is stored as `10s`.
+
+A flag still wins for a single run, so `piper --delay 1s make` ignores the
+stored value.
 
 ## Build
 

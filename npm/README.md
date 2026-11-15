@@ -65,4 +65,7 @@ Flags go **before** the command name.
 | `--fade-out <dur>` | `800ms`  | fade out length                            |
 | `--silent`         |          | no music for this run                      |
 
+A duration does not need a unit: `--delay 10` waits ten seconds, the same as
+`--delay 10s`. `500ms`, `2m`, `1h30m` and `3 seconds` all work.
+
 Full documentation: <https://github.com/d3uceY/Piper#readme>

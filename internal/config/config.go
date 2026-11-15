@@ -8,13 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 )
 
 // Config mirrors config.json. Durations are strings so the file stays readable
-// by hand: "3s", "1500ms", "1m".
+// by hand: "3s", "1500ms", "1m", or a bare number of seconds such as "3".
 type Config struct {
 	Delay   string  `json:"delay"`
 	Sound   string  `json:"sound"`
@@ -61,6 +64,9 @@ func (c Config) Settings() (Settings, error) {
 	if err != nil {
 		return Settings{}, err
 	}
+	if math.IsNaN(c.Volume) || math.IsInf(c.Volume, 0) {
+		return Settings{}, fmt.Errorf("volume: %v is not a number between 0 and 1", c.Volume)
+	}
 	if c.Volume < 0 || c.Volume > 1 {
 		return Settings{}, fmt.Errorf("volume: %v is outside 0 to 1", c.Volume)
 	}
@@ -75,17 +81,88 @@ func (c Config) Settings() (Settings, error) {
 }
 
 func parseDuration(field, value string) (time.Duration, error) {
-	if value == "" {
-		return 0, fmt.Errorf("%s: no duration set", field)
-	}
-	d, err := time.ParseDuration(value)
+	d, err := ParseDuration(value)
 	if err != nil {
-		return 0, fmt.Errorf("%s: %q is not a duration like 3s or 500ms", field, value)
-	}
-	if d < 0 {
-		return 0, fmt.Errorf("%s: %q is negative", field, value)
+		return 0, fmt.Errorf("%s: %w", field, err)
 	}
 	return d, nil
+}
+
+// unitSuffixes maps the words a person is likely to type onto the suffix
+// time.ParseDuration wants, so "500 milliseconds" and "2 mins" work as well as
+// "500ms" and "2m".
+var unitSuffixes = map[string]string{
+	"ns": "ns", "nanosecond": "ns", "nanoseconds": "ns",
+	"us": "us", "µs": "us", "μs": "us", "microsecond": "us", "microseconds": "us",
+	"ms": "ms", "millisecond": "ms", "milliseconds": "ms",
+	"s": "s", "sec": "s", "secs": "s", "second": "s", "seconds": "s",
+	"m": "m", "min": "m", "mins": "m", "minute": "m", "minutes": "m",
+	"h": "h", "hr": "h", "hrs": "h", "hour": "h", "hours": "h",
+}
+
+// ParseDuration reads a duration the way a person writes one. The unit is
+// optional: a bare number means seconds, so "3", "3s" and "3 seconds" are the
+// same value. Case and a space before the unit do not matter.
+func ParseDuration(value string) (time.Duration, error) {
+	raw := strings.ToLower(strings.TrimSpace(value))
+	if raw == "" {
+		return 0, errors.New("no duration set")
+	}
+
+	number, unit := splitNumberUnit(raw)
+	if unit == "" {
+		// Nothing after the number: seconds, so nobody has to remember the "s".
+		secs, err := strconv.ParseFloat(number, 64)
+		if err != nil {
+			return 0, notADuration(value)
+		}
+		return fromSeconds(value, secs)
+	}
+	if suffix, ok := unitSuffixes[unit]; ok {
+		raw = number + suffix
+	}
+
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, notADuration(value)
+	}
+	if d < 0 {
+		return 0, fmt.Errorf("%q is negative", value)
+	}
+	return d, nil
+}
+
+// fromSeconds turns a plain number of seconds into a duration, refusing values
+// that do not fit rather than letting them wrap into a nonsense delay.
+func fromSeconds(value string, secs float64) (time.Duration, error) {
+	if math.IsNaN(secs) || math.IsInf(secs, 0) {
+		return 0, notADuration(value)
+	}
+	// time.Duration is int64 nanoseconds, so anything past ~292 years is out of
+	// range and a float conversion of it is undefined.
+	limit := float64(math.MaxInt64) / float64(time.Second)
+	if secs > limit || secs < -limit {
+		return 0, fmt.Errorf("%q is longer than piper can wait", value)
+	}
+	d := time.Duration(secs * float64(time.Second))
+	if d < 0 {
+		return 0, fmt.Errorf("%q is negative", value)
+	}
+	return d, nil
+}
+
+// splitNumberUnit splits "1.5 hours" into "1.5" and "hours", so a spelled-out
+// unit can be rewritten as the suffix time.ParseDuration understands.
+func splitNumberUnit(s string) (number, unit string) {
+	i := 0
+	for i < len(s) && ((s[i] >= '0' && s[i] <= '9') || s[i] == '.' || s[i] == '+' || s[i] == '-') {
+		i++
+	}
+	return s[:i], strings.TrimSpace(s[i:])
+}
+
+func notADuration(value string) error {
+	return fmt.Errorf("%q is not a duration like 3s or 500ms; a plain number means seconds", value)
 }
 
 // Path is where the config file lives on this OS.

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -121,6 +122,9 @@ func TestSettingsRejectsBadValues(t *testing.T) {
 		{"unparseable fade in", func(c *Config) { c.FadeIn = "1.5 fortnights" }},
 		{"volume above one", func(c *Config) { c.Volume = 1.5 }},
 		{"negative volume", func(c *Config) { c.Volume = -0.1 }},
+		// NaN is false for every comparison, so a range check alone misses it.
+		{"volume that is not a number", func(c *Config) { c.Volume = math.NaN() }},
+		{"infinite volume", func(c *Config) { c.Volume = math.Inf(1) }},
 	}
 
 	for _, tc := range tests {
@@ -146,6 +150,68 @@ func TestEmptySoundSelectsTheEmbeddedSample(t *testing.T) {
 	}
 	if s.Sound != "" {
 		t.Errorf("sound = %q, want it left empty for the embedded sample", s.Sound)
+	}
+}
+
+// Nobody should have to remember the "s": a bare number is seconds, and the
+// unit may be a word, upper case, or separated by a space.
+func TestParseDurationNeedsNoUnit(t *testing.T) {
+	tests := []struct {
+		in   string
+		want time.Duration
+	}{
+		{"10", 10 * time.Second},
+		{"0", 0},
+		{"1.5", 1500 * time.Millisecond},
+		{" 4\t", 4 * time.Second},
+		{"10s", 10 * time.Second},
+		{"10 s", 10 * time.Second},
+		{"10S", 10 * time.Second},
+		{"10 seconds", 10 * time.Second},
+		{"3 sec", 3 * time.Second},
+		{"500 ms", 500 * time.Millisecond},
+		{"1500ms", 1500 * time.Millisecond},
+		{"2 mins", 2 * time.Minute},
+		{"1.5 hours", 90 * time.Minute},
+		{"1h30m", 90 * time.Minute},
+	}
+
+	for _, tc := range tests {
+		got, err := ParseDuration(tc.in)
+		if err != nil {
+			t.Errorf("ParseDuration(%q) failed: %v", tc.in, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseDuration(%q) = %v, want %v", tc.in, got, tc.want)
+		}
+	}
+}
+
+func TestParseDurationRejectsWhatIsNotADuration(t *testing.T) {
+	for _, in := range []string{
+		"", "   ", "soon", "s", "10x", "3 fortnights", "1.2.3", "nan", "inf",
+		"-1", "-2s",
+		"999999999999999999999", // more nanoseconds than an int64 can hold
+	} {
+		if d, err := ParseDuration(in); err == nil {
+			t.Errorf("ParseDuration(%q) = %v, want an error", in, d)
+		}
+	}
+}
+
+// The file is hand-edited, so a bare number there means seconds too.
+func TestSettingsAcceptsABareNumberOfSeconds(t *testing.T) {
+	cfg := Default()
+	cfg.Delay = "5"
+	cfg.FadeOut = "2"
+
+	s, err := cfg.Settings()
+	if err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	if s.Delay != 5*time.Second || s.FadeOut != 2*time.Second {
+		t.Errorf("delay = %v, fade_out = %v; want 5s and 2s", s.Delay, s.FadeOut)
 	}
 }
 

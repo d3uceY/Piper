@@ -84,6 +84,66 @@ func TestPiperFlagsStopAtTheCommandName(t *testing.T) {
 	}
 }
 
+// The flags read durations the same way the config file does: a bare number is
+// seconds, so --delay 5 needs no unit.
+func TestDurationFlagsNeedNoUnit(t *testing.T) {
+	root := newRootCmd()
+	root.SetOut(io.Discard)
+	root.SetErr(io.Discard)
+	root.RunE = func(*cobra.Command, []string) error { return nil }
+	root.SetArgs([]string{"--delay", "5", "--fade-in", "2 seconds", "--fade-out", "750", "noop"})
+
+	if err := root.Execute(); err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	for _, tc := range []struct {
+		flag string
+		want time.Duration
+	}{
+		{"delay", 5 * time.Second},
+		{"fade-in", 2 * time.Second},
+		{"fade-out", 750 * time.Second},
+	} {
+		got, err := root.Flags().GetDuration(tc.flag)
+		if err != nil {
+			t.Fatalf("--%s: %v", tc.flag, err)
+		}
+		if got != tc.want {
+			t.Errorf("--%s = %v, want %v", tc.flag, got, tc.want)
+		}
+	}
+}
+
+// A negative delay would mean the music starts before the command does, and a
+// volume outside 0 to 1 would clip or invert the sample, so both are refused
+// before the wrapped command is started.
+func TestFlagsRefuseUnusableValues(t *testing.T) {
+	// The real RunE validates and then starts the wrapped command, so point
+	// that at the helper process instead of a real one, and keep the config
+	// out of the developer's own config directory.
+	t.Setenv("PIPER_TEST_HELPER", "1")
+	isolatedConfig(t)
+
+	cases := [][]string{
+		{"--delay=-1"},
+		{"--volume", "2"},
+		{"--volume", "-0.1"},
+		{"--volume", "nan"},
+	}
+
+	for _, flags := range cases {
+		root := newRootCmd()
+		root.SetOut(io.Discard)
+		root.SetErr(io.Discard)
+		root.SetArgs(append(flags, helperArgs()...))
+
+		if err := root.Execute(); err == nil {
+			t.Errorf("%v was accepted", flags)
+		}
+	}
+}
+
 // Root used to reject anything that was not a subcommand; it now hands the
 // name to the shell.
 func TestUnknownNameIsTreatedAsACommand(t *testing.T) {

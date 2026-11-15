@@ -5,6 +5,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -20,6 +21,30 @@ import (
 // interruptGrace is how long an interrupted command gets to clean up by itself
 // before piper kills it.
 const interruptGrace = 2 * time.Second
+
+// durationValue is a flag that reads a duration the same way the config file
+// does, so --delay 10 and --delay 10s both mean ten seconds. A plain
+// DurationVar would reject the first one.
+type durationValue struct{ target *time.Duration }
+
+func (d durationValue) String() string {
+	if d.target == nil {
+		return ""
+	}
+	return d.target.String()
+}
+
+func (d durationValue) Set(s string) error {
+	v, err := config.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	*d.target = v
+	return nil
+}
+
+// Type is what the flag package reports in help output.
+func (d durationValue) Type() string { return "duration" }
 
 // ExitError carries the wrapped command's exit status up to main, which
 // repeats it, so `piper npm install` fails exactly when npm fails.
@@ -57,7 +82,8 @@ func newRootCmd() *cobra.Command {
 			"loops music under it until it finishes.\n\n" +
 			"Anything after the command name is passed to it untouched:\n\n" +
 			"  piper npm install --save\n\n" +
-			"piper's own flags go before the command name.",
+			"piper's own flags go before the command name. A duration takes an\n" +
+			"optional unit, so --delay 10 waits ten seconds.",
 		Version:       version.Short(),
 		Args:          cobra.ArbitraryArgs,
 		SilenceUsage:  true,
@@ -65,6 +91,9 @@ func newRootCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				return cmd.Help()
+			}
+			if err := f.validate(); err != nil {
+				return err
 			}
 			s := f.resolve(cmd)
 			return run(cmd, args, s)
@@ -75,11 +104,14 @@ func newRootCmd() *cobra.Command {
 	root.SetVersionTemplate("piper {{.Version}}\n")
 
 	flags := root.Flags()
-	flags.DurationVar(&f.delay, "delay", 3*time.Second, "how long the command may run before the music starts (config: delay)")
+	f.delay = 3 * time.Second
+	f.fadeIn = 1500 * time.Millisecond
+	f.fadeOut = 800 * time.Millisecond
+	flags.Var(durationValue{&f.delay}, "delay", "how long the command may run before the music starts; 10 means 10s (config: delay)")
 	flags.StringVar(&f.sound, "sound", "", "audio file to loop, empty for the sample built into piper (config: sound)")
 	flags.Float64Var(&f.volume, "volume", 0.5, "music volume from 0 to 1 (config: volume)")
-	flags.DurationVar(&f.fadeIn, "fade-in", 1500*time.Millisecond, "how long the fade in takes (config: fade_in)")
-	flags.DurationVar(&f.fadeOut, "fade-out", 800*time.Millisecond, "how long the fade out takes (config: fade_out)")
+	flags.Var(durationValue{&f.fadeIn}, "fade-in", "how long the fade in takes; 10 means 10s (config: fade_in)")
+	flags.Var(durationValue{&f.fadeOut}, "fade-out", "how long the fade out takes; 10 means 10s (config: fade_out)")
 	flags.BoolVar(&f.silent, "silent", false, "never play music, whatever the config says")
 
 	// Stop parsing at the first positional argument, so the wrapped command's
@@ -99,6 +131,19 @@ func newRootCmd() *cobra.Command {
 // failure; main() is responsible for the exit code and the message.
 func Execute() error {
 	return newRootCmd().Execute()
+}
+
+// validate refuses a flag value that would make playback misbehave, before the
+// wrapped command is started. A duration that will not parse is already caught
+// when the flag is set; this is for the values the flag package accepts happily.
+func (f runFlags) validate() error {
+	if math.IsNaN(f.volume) || math.IsInf(f.volume, 0) {
+		return fmt.Errorf("--volume: %v is not a number between 0 and 1", f.volume)
+	}
+	if f.volume < 0 || f.volume > 1 {
+		return fmt.Errorf("--volume: %v is outside 0 to 1", f.volume)
+	}
+	return nil
 }
 
 // resolve layers the config file, then the flags that were actually set, into
