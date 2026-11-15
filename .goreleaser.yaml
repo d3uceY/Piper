@@ -17,21 +17,47 @@ before:
     - go generate ./...
 
 builds:
-  - env:
-      - CGO_ENABLED=0
+  # Linux audio goes through ALSA, and oto's driver is cgo-only, so these
+  # targets are cross-compiled with zig instead of CGO_ENABLED=0.
+  - id: linux
     goos:
       - linux
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=1
+    overrides:
+      - goos: linux
+        goarch: amd64
+        env:
+          - CGO_ENABLED=1
+          - CC=zig cc -target x86_64-linux-gnu
+      - goos: linux
+        goarch: arm64
+        env:
+          - CGO_ENABLED=1
+          - CC=zig cc -target aarch64-linux-gnu
+
+  # Windows and macOS ship pure-Go drivers, so a static build is enough.
+  - id: purego
+    goos:
       - windows
       - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
 
 archives:
-  - formats: [tar.gz]
+  - id: default
+    formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
-      {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
     # use zip for windows archives
