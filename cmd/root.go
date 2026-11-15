@@ -89,6 +89,7 @@ func newRootCmd() *cobra.Command {
 	root.AddCommand(
 		newVersionCmd(),
 		newConfigCmd(),
+		newSoundCmd(),
 	)
 
 	return root
