@@ -7,12 +7,10 @@ under it.
 
 ```sh
 piper npm install
-```
-
-```sh
-piper npm install --save
 piper --delay 10s --volume 0.3 cargo build --release
 ```
+
+Flags go **before** the command name.
 
 ## Install
 
@@ -22,81 +20,57 @@ piper --delay 10s --volume 0.3 cargo build --release
 brew install --cask d3uceY/piper-homebrew-cask/piper
 ```
 
-The tap is the repo `d3uceY/piper-homebrew-cask` and the cask is `piper`, so both
-parts are needed. This is a cask, so `--cask` is required — `brew install piper`
-would look for a formula that does not exist. Upgrade later with
+`--cask` is required; `brew install piper` looks for a formula. Upgrade with
 `brew upgrade --cask piper`.
 
-### npm (any platform)
+### npm
 
 ```sh
 npm install -g @deuce/piper
 ```
 
-The package downloads the right binary for your platform on install. npm 11.4+
-blocks install scripts by default, so if you see this warning:
+npm 11.4+ blocks install scripts by default. If you see:
 
 ```
-npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:
 npm warn install-scripts   @deuce/piper@0.1.1 (postinstall: node install.js)
 ```
 
 allow it with either:
 
 ```sh
-npm install -g --allow-scripts=@deuce/piper      # this install only
-npm config set allow-scripts=@deuce/piper --location=user   # all future installs
+npm install -g --allow-scripts=@deuce/piper
+npm config set allow-scripts=@deuce/piper --location=user
 ```
 
-You do not have to. If the script is skipped, `piper` fetches the binary the
-first time you run it and shows a short `downloading...` line. Allowing the
-script just moves that work into the install.
+Optional. Skipped, the binary downloads on first run.
 
-Prefer not to install globally?
+No global install:
 
 ```sh
 npx @deuce/piper npm install
 ```
 
-To install without the binary at all (offline, packaging), set
-`PIPER_SKIP_DOWNLOAD=1`.
+`PIPER_SKIP_DOWNLOAD=1` installs the wrapper without the binary.
 
 ### Prebuilt binaries
 
-Windows, macOS and Linux builds for x86_64 and arm64 are attached to every
-[release](https://github.com/d3uceY/Piper/releases). Unpack the archive and put
-`piper` on your PATH.
+x86_64 and arm64 builds for Windows, macOS and Linux are on the
+[releases](https://github.com/d3uceY/Piper/releases) page.
 
 ## Commands
 
-| Command                   | What it does                                        |
-| ------------------------- | --------------------------------------------------- |
-| `piper <command> [args…]` | run the command, with music if it drags             |
-| `piper sound <file>`      | use a music file of your own, and remember it       |
-| `piper sound reset`       | go back to the sample built into piper              |
-| `piper config`            | show the settings and where they live               |
-| `piper config path`       | print only the config file path                     |
-| `piper version`           | print the build                                     |
-
-## Your own music
-
-Point `piper sound` at an audio file once and every run after it loops that
-file. The path is checked when you set it and stored in the config file, so a
-typo fails straight away instead of silently at play time.
-
-```sh
-piper sound ~/Music/loop.mp3
-piper sound reset        # back to the built-in sample
-```
-
-A `~` is expanded and relative paths are stored as absolute ones, so the file
-is still found when piper is run from another directory.
+| Command                   | Does                                    |
+| ------------------------- | --------------------------------------- |
+| `piper <command> [args…]` | run the command, with music if it drags |
+| `piper sound <file>`      | use your own music file, and keep it    |
+| `piper sound reset`       | back to the built-in sample             |
+| `piper config`            | show settings and where they live       |
+| `piper config path`       | print the config file path              |
+| `piper version`           | print the build                         |
 
 ## Flags
 
-Flags go **before** the command name.
-
-| Flag               | Default  | What it does                               |
+| Flag               | Default  | Does                                       |
 | ------------------ | -------- | ------------------------------------------ |
 | `--delay <dur>`    | `3s`     | how long the command may run before music  |
 | `--volume <0..1>`  | `0.5`    | volume                                     |
@@ -105,22 +79,27 @@ Flags go **before** the command name.
 | `--fade-out <dur>` | `800ms`  | fade out length                            |
 | `--silent`         |          | no music for this run                      |
 
-## How it works
+## Your own music
 
-1. Starts the command and waits.
-2. Still running after `delay`? Decode the sample, open the audio device, loop it,
-   fade in.
-3. Command exits: fade out, then exit with the command's own status code.
+```sh
+piper sound ~/Music/loop.mp3
+piper sound reset
+```
+
+The path is checked when set, so a typo fails immediately. `~` is expanded and
+relative paths are stored as absolute, so the file is found from any directory.
 
 ## Config
 
-Written on first run at `%AppData%\piper\config.json` (Windows),
-`~/Library/Application Support/piper/config.json` (macOS),
-`$XDG_CONFIG_HOME/piper/config.json` (Linux). The keys mirror the flags, empty
-`sound` means the embedded sample, and `piper config` prints the file.
+| OS      | Path                                              |
+| ------- | ------------------------------------------------- |
+| Windows | `%AppData%\piper\config.json`                     |
+| macOS   | `~/Library/Application Support/piper/config.json` |
+| Linux   | `$XDG_CONFIG_HOME/piper/config.json`              |
 
-`sound` is what `piper sound` writes. Setting it by hand works too; it is used
-as given, so a relative path is resolved against wherever piper is run.
+Keys mirror the flags. Empty `sound` means the embedded sample. `piper sound`
+writes `sound`; setting it by hand works too, and a relative path resolves
+against the current directory.
 
 ## Build
 
